@@ -9,9 +9,10 @@ sudo echo ''
 while true
 do
 
-    item_number=0
-    interfaces=(`ip link show | awk 'NR % 2 {print $2}' | grep '^w' |  sed 's/://'`)
+#   interfaces=(`ip link show | awk 'NR % 2 {print $2}' | grep '^w' |  sed 's/://'`)
+    interfaces=(`iw dev | awk '/phy#/{getline; print $2}'`)
 
+    item_number=0
     printf "\n"
     printf "Select network interface to switch modes:\n\n"
     for each_line in ${interfaces[@]}
@@ -20,6 +21,9 @@ do
         printf "$item_number: $current_mode ${interfaces[item_number]}\n"
         item_number=$((item_number + 1))
     done
+    printf "a: all wireless interfaces except internal card (last interface)\n"
+    printf "A: ALL wireless interfaces\n"
+    printf "q: quit\n"
     printf "\n"
 
     read menu_choice
@@ -45,8 +49,6 @@ do
         case $iface_mode in
             managed)
                 new_iface="wlan$menu_choice"
-                printf "$current_iface"
-                printf "$new_iface"
 
                 sudo ip link set $current_iface down
                 sudo ip link set $current_iface name $new_iface
@@ -56,9 +58,10 @@ do
                 ;;
             monitor)
                 sudo airmon-ng stop $current_iface
-                sudo ip link set $current_iface down
-                sudo ip macchanger -p $current_iface
-                sudo ip link set $current_iface up
+                new_iface=$(echo $current_iface | sed 's/mon//')
+                sudo ip link set $new_iface down
+                sudo macchanger -p $new_iface
+                sudo ip link set $new_iface up
                 ;;
         esac
         ;;
